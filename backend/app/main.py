@@ -22,14 +22,21 @@ def cors_origins_from_env() -> list[str]:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     app.state.settings = settings
-    app.state.db_pool = await create_pool(settings)
+    try:
+        app.state.db_pool = await create_pool(settings)
+    except Exception:
+        app.state.db_pool = None
+
     try:
         yield
     finally:
-        await app.state.db_pool.close()
+        if app.state.db_pool is not None:
+            await app.state.db_pool.close()
 
 
-app = FastAPI(title="Parakhiya & Co. Shared Inbox API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Parakhiya & Co. Shared Inbox API", version="1.0.0", lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,

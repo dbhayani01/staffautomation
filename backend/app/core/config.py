@@ -8,12 +8,24 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Runtime configuration loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
-    database_url: str = Field(..., validation_alias="DATABASE_URL")
-    n8n_outbound_webhook_url: AnyUrl = Field(..., validation_alias="N8N_OUTBOUND_WEBHOOK_URL")
-    n8n_outbound_webhook_token: str = Field(..., validation_alias="N8N_OUTBOUND_WEBHOOK_TOKEN")
-    cors_origins_raw: str = Field("http://localhost:3000", validation_alias="CORS_ORIGINS")
+    database_url: str = Field(
+        "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+        validation_alias="DATABASE_URL",
+    )
+    n8n_outbound_webhook_url: AnyUrl = Field(
+        "http://localhost:5678/webhook/outbound-mail",
+        validation_alias="N8N_OUTBOUND_WEBHOOK_URL",
+    )
+    n8n_outbound_webhook_token: str = Field(
+        "placeholder-token", validation_alias="N8N_OUTBOUND_WEBHOOK_TOKEN"
+    )
+    cors_origins_raw: str = Field(
+        "http://localhost:3000", validation_alias="CORS_ORIGINS"
+    )
     db_min_pool_size: int = Field(1, validation_alias="DB_MIN_POOL_SIZE")
     db_max_pool_size: int = Field(10, validation_alias="DB_MAX_POOL_SIZE")
 
@@ -22,7 +34,11 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         if self.cors_origins_raw.startswith("["):
             return json.loads(self.cors_origins_raw)
-        return [origin.strip() for origin in self.cors_origins_raw.split(",") if origin.strip()]
+        return [
+            origin.strip()
+            for origin in self.cors_origins_raw.split(",")
+            if origin.strip()
+        ]
 
 
 @lru_cache

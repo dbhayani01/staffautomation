@@ -22,6 +22,13 @@ class StaffOption(BaseModel):
     staff_email: EmailStr
 
 
+class ClientSummary(BaseModel):
+    client_email: EmailStr | str
+    assigned_staff_id: int | None = None
+    thread_count: int
+    latest_received_at: datetime
+
+
 class EmailItem(BaseModel):
     id: int
     sender_email: EmailStr | str
@@ -36,6 +43,7 @@ class InboxResponse(BaseModel):
     current_user: Staff
     emails: list[EmailItem]
     staff: list[StaffOption] = Field(default_factory=list)
+    clients: list[ClientSummary] = Field(default_factory=list)
 
 
 class AssignEmailRequest(BaseModel):

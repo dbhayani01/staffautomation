@@ -9,6 +9,13 @@ export type Staff = {
 
 export type StaffOption = Pick<Staff, "staff_id" | "staff_name" | "staff_email">;
 
+export type ClientSummary = {
+  client_email: string;
+  assigned_staff_id: number | null;
+  thread_count: number;
+  latest_received_at: string;
+};
+
 export type EmailItem = {
   id: number;
   sender_email: string;
@@ -23,4 +30,5 @@ export type InboxResponse = {
   current_user: Staff;
   emails: EmailItem[];
   staff: StaffOption[];
+  clients: ClientSummary[];
 };

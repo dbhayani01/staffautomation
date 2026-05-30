@@ -10,6 +10,7 @@ from app.core.config import Settings
 from app.models.schemas import (
     Staff,
     AssignEmailRequest,
+    ClientSummary,
     EmailItem,
     InboxResponse,
     ReplyRequest,
@@ -49,6 +50,14 @@ def placeholder_inbox(current_staff: Staff) -> InboxResponse:
             if current_staff.role == "admin"
             else []
         ),
+        clients=[
+            ClientSummary(
+                client_email=placeholder_email.sender_email,
+                assigned_staff_id=placeholder_email.assigned_staff_id,
+                thread_count=1,
+                latest_received_at=placeholder_email.received_at,
+            )
+        ],
     )
 
 
@@ -74,6 +83,16 @@ async def list_emails(
                 WHERE role IN ('staff', 'admin')
                 ORDER BY staff_name ASC
                 """)
+            client_rows = await connection.fetch("""
+                SELECT
+                    sender_email AS client_email,
+                    assigned_staff_id,
+                    COUNT(DISTINCT thread_id)::int AS thread_count,
+                    MAX(received_at) AS latest_received_at
+                FROM staff_inbox
+                GROUP BY sender_email, assigned_staff_id
+                ORDER BY latest_received_at DESC
+                """)
         else:
             email_rows = await connection.fetch(
                 """
@@ -85,11 +104,26 @@ async def list_emails(
                 current_staff.staff_id,
             )
             staff_rows = []
+            client_rows = await connection.fetch(
+                """
+                SELECT
+                    sender_email AS client_email,
+                    assigned_staff_id,
+                    COUNT(DISTINCT thread_id)::int AS thread_count,
+                    MAX(received_at) AS latest_received_at
+                FROM staff_inbox
+                WHERE assigned_staff_id = $1
+                GROUP BY sender_email, assigned_staff_id
+                ORDER BY latest_received_at DESC
+                """,
+                current_staff.staff_id,
+            )
 
         return InboxResponse(
             current_user=current_staff,
             emails=[EmailItem(**dict(row)) for row in email_rows],
             staff=[StaffOption(**dict(row)) for row in staff_rows],
+            clients=[ClientSummary(**dict(row)) for row in client_rows],
         )
     except (asyncpg.PostgresError, OSError, TimeoutError):
         return placeholder_inbox(current_staff)

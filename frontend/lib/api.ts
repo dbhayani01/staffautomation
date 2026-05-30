@@ -7,8 +7,8 @@ const PLACEHOLDER_RECEIVED_AT = "2026-05-30T00:00:00.000Z";
 const PLACEHOLDER_INBOX: InboxResponse = {
   current_user: {
     staff_id: 1,
-    staff_name: "Demo Staff",
-    staff_email: "demo.staff@parakhiya.example",
+    staff_name: "Demo Admin",
+    staff_email: "admin@parakhiya.example",
     role: "admin",
   },
   emails: [
@@ -26,15 +26,33 @@ const PLACEHOLDER_INBOX: InboxResponse = {
   staff: [
     {
       staff_id: 1,
+      staff_name: "Demo Admin",
+      staff_email: "admin@parakhiya.example",
+    },
+    {
+      staff_id: 2,
       staff_name: "Demo Staff",
-      staff_email: "demo.staff@parakhiya.example",
+      staff_email: "staff@parakhiya.example",
+    },
+  ],
+  clients: [
+    {
+      client_email: "client.placeholder@example.com",
+      assigned_staff_id: null,
+      thread_count: 1,
+      latest_received_at: PLACEHOLDER_RECEIVED_AT,
     },
   ],
 };
 
-function staffHeaders(): HeadersInit {
-  const staffEmail = process.env.NEXT_PUBLIC_STAFF_EMAIL;
-  const staffId = process.env.NEXT_PUBLIC_STAFF_ID;
+export type StaffIdentity = {
+  staffEmail?: string;
+  staffId?: number;
+};
+
+function staffHeaders(identity?: StaffIdentity): HeadersInit {
+  const staffEmail = identity?.staffEmail ?? process.env.NEXT_PUBLIC_STAFF_EMAIL;
+  const staffId = identity?.staffId?.toString() ?? process.env.NEXT_PUBLIC_STAFF_ID;
 
   if (staffEmail) {
     return { "X-Staff-Email": staffEmail };
@@ -47,11 +65,29 @@ function staffHeaders(): HeadersInit {
   return {};
 }
 
-function clonePlaceholderInbox(): InboxResponse {
+function clonePlaceholderInbox(identity?: StaffIdentity): InboxResponse {
+  const staffEmail = identity?.staffEmail;
+  const matchingStaff = staffEmail
+    ? PLACEHOLDER_INBOX.staff.find((staff) => staff.staff_email.toLowerCase() === staffEmail.toLowerCase())
+    : undefined;
+
   return {
-    current_user: { ...PLACEHOLDER_INBOX.current_user },
+    current_user: {
+      ...PLACEHOLDER_INBOX.current_user,
+      ...(matchingStaff
+        ? {
+            staff_id: matchingStaff.staff_id,
+            staff_name: matchingStaff.staff_name,
+            staff_email: matchingStaff.staff_email,
+            role: matchingStaff.staff_email.includes("admin") ? "admin" : "staff",
+          }
+        : staffEmail
+          ? { staff_email: staffEmail, staff_name: staffEmail.split("@")[0] || "Demo Staff", role: "staff" }
+          : {}),
+    },
     emails: PLACEHOLDER_INBOX.emails.map((email) => ({ ...email })),
     staff: PLACEHOLDER_INBOX.staff.map((staff) => ({ ...staff })),
+    clients: PLACEHOLDER_INBOX.clients.map((client) => ({ ...client })),
   };
 }
 
@@ -76,27 +112,31 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function fetchInbox(): Promise<InboxResponse> {
+export async function fetchInbox(identity?: StaffIdentity): Promise<InboxResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/emails`, {
       cache: "no-store",
-      headers: staffHeaders(),
+      headers: staffHeaders(identity),
     });
 
     return await parseResponse<InboxResponse>(response);
   } catch (error) {
     logApiFallback("Inbox", error);
-    return clonePlaceholderInbox();
+    return clonePlaceholderInbox(identity);
   }
 }
 
-export async function assignEmail(threadId: string, assignedStaffId: number): Promise<EmailItem> {
+export async function assignEmail(
+  threadId: string,
+  assignedStaffId: number,
+  identity?: StaffIdentity,
+): Promise<EmailItem> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/emails/assign`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...staffHeaders(),
+        ...staffHeaders(identity),
       },
       body: JSON.stringify({ thread_id: threadId, assigned_staff_id: assignedStaffId }),
     });
@@ -108,13 +148,13 @@ export async function assignEmail(threadId: string, assignedStaffId: number): Pr
   }
 }
 
-export async function sendReply(threadId: string, body: string): Promise<void> {
+export async function sendReply(threadId: string, body: string, identity?: StaffIdentity): Promise<void> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/emails/reply`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...staffHeaders(),
+        ...staffHeaders(identity),
       },
       body: JSON.stringify({ thread_id: threadId, body }),
     });

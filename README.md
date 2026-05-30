@@ -28,7 +28,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_STAFF_EMAIL=admin@parakhiya.co
 ```
 
-## Local development
+## Local development ---
 
 ```bash
 cd backend

@@ -15,7 +15,14 @@ async def create_pool(settings: Settings) -> asyncpg.Pool:
     )
 
 
-async def get_connection(request: Request) -> AsyncIterator[asyncpg.Connection]:
-    pool: asyncpg.Pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        yield connection
+async def get_connection(request: Request) -> AsyncIterator[asyncpg.Connection | None]:
+    pool: asyncpg.Pool | None = getattr(request.app.state, "db_pool", None)
+    if pool is None:
+        yield None
+        return
+
+    try:
+        async with pool.acquire() as connection:
+            yield connection
+    except (asyncpg.PostgresError, OSError, TimeoutError):
+        yield None

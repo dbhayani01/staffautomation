@@ -10,6 +10,28 @@ type Props = {
 
 const tabs = ["My Inbox", "Unassigned Queue", "Staff Settings"] as const;
 
+function parseEmailDate(value: string): Date | null {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatInboxDate(value: string): string {
+  const date = parseEmailDate(value);
+  if (!date) return "Unknown date";
+
+  return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
+}
+
+function formatThreadTimestamp(value: string): string {
+  const date = parseEmailDate(value);
+  if (!date) return "Unknown date";
+
+  const hours = date.getUTCHours().toString().padStart(2, "0");
+  const minutes = date.getUTCMinutes().toString().padStart(2, "0");
+
+  return `${formatInboxDate(value)}, ${hours}:${minutes} UTC`;
+}
+
 export function InboxDashboard({ initialData }: Props) {
   const [emails, setEmails] = useState(initialData.emails);
   const [activeThreadId, setActiveThreadId] = useState(emails[0]?.thread_id ?? "");
@@ -113,8 +135,8 @@ export function InboxDashboard({ initialData }: Props) {
                     <p className="font-semibold text-slate-950">{email.sender_email}</p>
                     <p className="mt-1 line-clamp-1 text-sm text-slate-700">{email.subject ?? "No subject"}</p>
                   </div>
-                  <time className="shrink-0 text-xs text-slate-400">
-                    {new Date(email.received_at).toLocaleDateString()}
+                  <time className="shrink-0 text-xs text-slate-400" dateTime={email.received_at}>
+                    {formatInboxDate(email.received_at)}
                   </time>
                 </div>
                 <p className="mt-3 line-clamp-2 text-sm text-slate-500">{email.snippet ?? "No preview available."}</p>
@@ -152,7 +174,7 @@ export function InboxDashboard({ initialData }: Props) {
                   <article key={message.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="mb-3 flex items-center justify-between text-sm text-slate-500">
                       <span>{message.sender_email}</span>
-                      <time>{new Date(message.received_at).toLocaleString()}</time>
+                      <time dateTime={message.received_at}>{formatThreadTimestamp(message.received_at)}</time>
                     </div>
                     <p className="whitespace-pre-wrap text-slate-700">{message.snippet ?? "No message preview stored."}</p>
                   </article>

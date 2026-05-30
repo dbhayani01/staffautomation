@@ -1,20 +1,6 @@
 import type { EmailItem, InboxResponse } from "./types";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-
-export function emptyInboxData(): InboxResponse {
-  return {
-    current_user: {
-      staff_id: 0,
-      staff_name: "Unavailable",
-      staff_email: "unavailable@parakhiya.co",
-      role: "staff",
-    },
-    emails: [],
-    staff: [],
-  };
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 function staffHeaders(): HeadersInit {
   const staffEmail = process.env.NEXT_PUBLIC_STAFF_EMAIL;
@@ -31,10 +17,6 @@ function staffHeaders(): HeadersInit {
   return {};
 }
 
-function requestTimeoutSignal(): AbortSignal {
-  return AbortSignal.timeout(10_000);
-}
-
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ detail: response.statusText }));
@@ -45,18 +27,12 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function fetchInbox(): Promise<InboxResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/emails`, {
-      cache: "no-store",
-      headers: staffHeaders(),
-      signal: requestTimeoutSignal(),
-    });
+  const response = await fetch(`${API_BASE_URL}/api/emails`, {
+    cache: "no-store",
+    headers: staffHeaders(),
+  });
 
-    return parseResponse<InboxResponse>(response);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to reach inbox API";
-    throw new Error(`Unable to load shared inbox from ${API_BASE_URL}: ${message}`);
-  }
+  return parseResponse<InboxResponse>(response);
 }
 
 export async function assignEmail(threadId: string, assignedStaffId: number): Promise<EmailItem> {
@@ -66,7 +42,6 @@ export async function assignEmail(threadId: string, assignedStaffId: number): Pr
       "Content-Type": "application/json",
       ...staffHeaders(),
     },
-    signal: requestTimeoutSignal(),
     body: JSON.stringify({ thread_id: threadId, assigned_staff_id: assignedStaffId }),
   });
 
@@ -80,7 +55,6 @@ export async function sendReply(threadId: string, body: string): Promise<void> {
       "Content-Type": "application/json",
       ...staffHeaders(),
     },
-    signal: requestTimeoutSignal(),
     body: JSON.stringify({ thread_id: threadId, body }),
   });
 

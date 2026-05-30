@@ -6,17 +6,16 @@ import type { EmailItem, InboxResponse } from "@/lib/types";
 
 type Props = {
   initialData: InboxResponse;
-  initialError?: string;
 };
 
 const tabs = ["My Inbox", "Unassigned Queue", "Staff Settings"] as const;
 
-export function InboxDashboard({ initialData, initialError }: Props) {
+export function InboxDashboard({ initialData }: Props) {
   const [emails, setEmails] = useState(initialData.emails);
   const [activeThreadId, setActiveThreadId] = useState(emails[0]?.thread_id ?? "");
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("My Inbox");
   const [replyBody, setReplyBody] = useState("");
-  const [notice, setNotice] = useState<string | null>(initialError ?? null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = initialData.current_user.role === "admin";
@@ -96,12 +95,6 @@ export function InboxDashboard({ initialData, initialError }: Props) {
         </aside>
 
         <section className="flex min-h-0 flex-col border-r border-slate-200">
-          {initialError ? (
-            <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
-              The inbox API is currently unreachable. Start the FastAPI service or set API_BASE_URL /
-              NEXT_PUBLIC_API_BASE_URL, then refresh. Details: {initialError}
-            </div>
-          ) : null}
           <div className="border-b border-slate-200 p-5">
             <p className="text-sm font-medium text-slate-500">{activeTab}</p>
             <h2 className="text-2xl font-semibold text-slate-950">{visibleEmails.length} conversations</h2>

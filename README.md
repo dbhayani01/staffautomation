@@ -23,8 +23,7 @@ Session identity is supplied by the application edge/auth layer with `X-Staff-Em
 ### Frontend
 
 ```bash
-API_BASE_URL=http://127.0.0.1:8000
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 # Development/demo identity header. In production, set these headers in middleware from your auth provider.
 NEXT_PUBLIC_STAFF_EMAIL=admin@parakhiya.co
 ```
